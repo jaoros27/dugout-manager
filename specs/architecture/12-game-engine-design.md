@@ -13,6 +13,41 @@
 4. **Position-aware**: A striker's attributes are weighted differently than a goalkeeper's.
 5. **Context-sensitive**: Tactics, morale, fatigue, weather, crowd pressure all matter.
 6. **Auditable**: Full event log produced per match for debugging and analytics.
+7. **Tunable without recompiling**: Every magic number lives in config, not code (see §1.1).
+
+### 1.1 Tunable Constants Principle (MANDATORY)
+
+Every numeric constant in this document — `baseRate = 1.2`, `injuryProbability = 0.003`,
+shot thresholds (`> 14`), home-advantage modifiers (`+0.05`), fatigue decay rates,
+momentum weights, position weight tables — is a **calibration parameter, not a code
+literal**.
+
+All such constants live in a single versioned config object (`EngineTuning`), passed
+into `simulate()` as part of the context (or bound at engine construction). Rules:
+
+- **No stochastic or weighting constant is hardcoded** in an algorithm function.
+- The Monte Carlo calibration suite (§13) tunes `EngineTuning`, never patches code.
+- Each `EngineTuning` version is hashed and stored — a career/league pins its tuning
+  version so results never silently change under a player mid-season.
+- Mods (Phase 6) may ship alternative `EngineTuning` profiles (e.g., "high-scoring
+  arcade" vs "realistic").
+
+```typescript
+interface EngineTuning {
+  version: string
+  possession: { homeAdvantage: number; varianceSigma: number; clampMin: number; clampMax: number }
+  chances:    { baseRatePerPhase: number; poissonScale: number }
+  shooting:   { onTargetThreshold: number; goalThreshold: number; noiseSigma: number }
+  injuries:   { baseProbabilityPerPhase: number; fatigueWeight: number; ageWeight: number }
+  fatigue:    { decayPerPhase: number; highPressPenalty: number }
+  momentum:   { scoringBoost: number; phaseWinBoost: number }
+  positionWeights: Record<PositionCode, AttributeWeightTable>
+}
+```
+
+The consequence: calibrating the engine is editing a config and re-running the
+statistical suite — **never recompiling**. This is what makes "annual update" and
+community tuning operationally cheap.
 
 ---
 

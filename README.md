@@ -77,12 +77,17 @@ dugout-manager/
 | Layer | Technology |
 |---|---|
 | Frontend | Next.js 15, React 19, TypeScript, Tailwind, Zustand |
-| Backend | NestJS, TypeScript, CQRS |
+| Distribution | Web-first (canonical) + Desktop via Tauri wrapper (same codebase) |
+| Backend | NestJS, TypeScript, CQRS *(proposed — ratified at Phase 3)* |
 | Database | PostgreSQL 16, Redis 7 |
-| Messaging | NATS JetStream |
+| Messaging | NATS JetStream *(proposed — ratified at Phase 3)* |
 | Monorepo | Turborepo + pnpm Workspaces |
 | Infra | Docker, Kubernetes |
 | Observability | OpenTelemetry, Prometheus, Grafana |
+
+> **Distribution model**: the game runs both in the browser (play instantly, no install)
+> and as a downloadable desktop app. Both come from one web-first codebase — the desktop
+> app is the same web app wrapped in Tauri, not a separate product. See ADR-011.
 
 ---
 

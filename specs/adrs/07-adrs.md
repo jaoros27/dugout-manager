@@ -76,13 +76,21 @@ We need a web application that:
 - App Router mental model differs from Pages Router — team needs training
 - SSR adds complexity for real-time game state (must be careful about hydration)
 - Vercel deployment is easiest path but not mandatory — Docker works fine
+- This same web codebase is the foundation for the desktop (and later mobile) shells —
+  see ADR-011 (Distribution Strategy). The web app is the canonical build; native
+  shells wrap it rather than forking it.
 
 ---
 
 ## ADR-003 — Backend Framework: NestJS
 
-**Status**: Accepted  
+**Status**: Proposed (decide at Phase 3 entry)  
 **Date**: 2026-06-01
+
+> **Note**: There is no backend until Phase 3. Locking this now would be speculative
+> architecture — we would build abstractions for a problem whose real shape is 10+
+> months away. This ADR records the *current preference*; it is ratified only at the
+> Phase 3 planning gate, when the backend requirements are concrete.
 
 ### Context
 We need a backend that:
@@ -118,8 +126,11 @@ We need a backend that:
 
 ## ADR-004 — Message Broker: NATS JetStream
 
-**Status**: Accepted  
+**Status**: Proposed (decide at Phase 3 entry)  
 **Date**: 2026-06-01
+
+> **Note**: No message broker is needed until Phase 3 (Phases 1–2 use in-process
+> events). Recorded as current preference; ratified at the Phase 3 planning gate.
 
 ### Context
 We need async messaging for:
@@ -234,9 +245,9 @@ We need storage for:
 
 ---
 
-## ADR-007 — Architecture Pattern: CQRS + Event Sourcing (Selective)
+## ADR-007 — Architecture Pattern: CQRS + Event Sourcing (Match Engine only)
 
-**Status**: Accepted  
+**Status**: Proposed (decide at Phase 3 entry)  
 **Date**: 2026-06-01
 
 ### Context
@@ -244,20 +255,42 @@ Full event sourcing (all state derived from events) is powerful but complex. We 
 1. Full Event Sourcing everywhere
 2. CQRS with traditional state + event log
 3. CQRS only (no event sourcing)
+4. Event Sourcing only where replay is a hard requirement
 
 ### Decision
-**CQRS everywhere + Event Sourcing selectively** (Match and Finance contexts only).
+**Event Sourcing in the Match Engine context ONLY. Append-only immutable ledger
+for Finance. Traditional state + optimistic locking everywhere else. CQRS applied
+selectively where read/write patterns genuinely diverge — not as a blanket rule.**
 
 ### Rationale
-- Full ES for Match: every match must be replayable for debugging, analytics, and anti-cheat
-- Full ES for Finance: every money movement must be auditable forever
-- Traditional state for Club, Player, Competition: simpler, faster writes, no replay needed
-- CQRS throughout: write model (commands) and read model (queries) separated for performance
+- **ES for Match**: every match must be replayable for debugging, analytics, and
+  anti-cheat. Replay is a *real, irreplaceable* requirement here — this is the one
+  place ES earns its cost.
+- **Finance does NOT need ES — an immutable ledger is enough.** The goal in Finance
+  is auditability, not state reconstruction in unforeseen ways. An append-only
+  `ledger_events` table (INSERT-only, never UPDATE/DELETE) gives full audit history
+  without the cost of event upcasters, schema versioning, and replay machinery.
+  Current balance is a `SUM()` over the ledger (materialized view). This is ES's
+  audit benefit without ES's complexity tax.
+- **Traditional state for Club, Player, Competition**: simpler, faster writes, no
+  replay needed. Optimistic locking on a `version` column prevents lost updates.
+- **CQRS is applied selectively, not everywhere**: only where the read model
+  genuinely needs a different shape than the write model (e.g., league tables,
+  transfer market). Forcing CQRS on simple CRUD aggregates is ceremony, not value.
+
+### Why we backed off "Event Sourcing everywhere"
+The original draft applied ES to Match *and* Finance. On review, Finance's
+requirement (auditability) is fully satisfied by a cheaper pattern. Adding ES there
+would have been rigor disguised as dívida técnica — machinery built for a
+reconstruction need that does not exist. ES is reserved for the single context where
+replay is non-negotiable.
 
 ### Consequences
 - Match events stored indefinitely → plan for data growth (partitioning by season)
-- Finance events stored indefinitely → legal requirement
-- All other aggregates use optimistic locking on version number, not full event replay
+- Finance ledger is append-only and stored indefinitely → legal requirement, but no
+  event versioning/upcasting burden
+- All other aggregates use optimistic locking on a version number
+- This ADR is ratified at the Phase 3 gate, when persistence becomes real
 
 ---
 
@@ -358,3 +391,56 @@ Cost of official licensing:
 - Community expects real names at launch — manage expectations via mod system
 - Legal review required before any real-name data ships in base game
 - Mod system must include DMCA takedown support for unlicensed content
+
+---
+
+## ADR-011 — Distribution Strategy: Web-First, Desktop as a Wrapper
+
+**Status**: Accepted  
+**Date**: 2026-06-09
+
+### Context
+The game must be available both in the browser (play instantly, no install) and as a
+downloadable desktop app (offline play, "owning" the game — the Brasfoot heritage).
+The question: build both, or download only? And if both, do they share a codebase?
+
+### Options Considered
+| Option | Pros | Cons |
+|---|---|---|
+| **Download only (native)** | "Product" feel, offline, Brasfoot-familiar | High install friction, kills acquisition, single-platform effort per OS |
+| **Web only** | Zero friction, instant play, great for growth | No offline ownership, weaker "product" feel |
+| **Both, separate codebases** | Tailored per platform | 2× the work — unaffordable for a small team |
+| **Both, shared codebase (web-first)** | One codebase, two distributions, near-zero extra cost | Desktop is constrained to what the web app can do |
+
+### Decision
+**Build both from a single web-first codebase. The web app is the source of truth.
+The desktop app is the same web app packaged in a native shell (Tauri).**
+
+### Rationale
+- The match engine is a pure TypeScript function that runs identically in the browser
+  and in Node — there is no engine fork between platforms.
+- The UI is Next.js/React. The desktop app is that exact UI wrapped by Tauri. We write
+  once, distribute twice.
+- **Web-first is an acquisition decision, not just a technical one.** The project's
+  biggest risk is an empty cathedral (nobody shows up). A link that opens the game
+  converts far better than an `.exe` to download. Web kills install friction and is
+  the natural home for multiplayer (Phase 4) and the annual data update (server-side).
+- **Desktop still ships** (Phase 2) because the Brasfoot audience is Windows-heavy and
+  values offline, account-free, "I own this" play. It costs almost nothing because it
+  is a wrapper, not a second product.
+
+### Why Tauri over Electron
+- Tauri bundles are ~5 MB vs Electron's 100 MB+ — this directly reinforces the "runs on
+  any PC" lightness that defined Brasfoot.
+- Tauri uses the OS's native WebView (WebView2 on Windows 11, already preinstalled).
+
+### Risk and Fallback
+- **Risk**: Tauri's WebView2 dependency can add friction on older Windows installs.
+- **Mitigation**: Validate Tauri on real Windows targets early in Phase 2. If friction
+  is unacceptable, fall back to Electron — the web codebase does not change, only the
+  shell. This decision is therefore low-risk and reversible.
+
+### Consequences
+- The web app must remain the canonical build; desktop never forks UI logic.
+- Offline mode (single-player save via IndexedDB) must work in both shells.
+- Phase 5 mobile follows the same principle: shared SDK, platform-specific shell.

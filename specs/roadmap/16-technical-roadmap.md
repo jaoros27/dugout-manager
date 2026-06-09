@@ -16,6 +16,35 @@ Phase 5: Mobile                  (Months 25–32)
 Phase 6: Ecosystem               (Months 33–48)
 ```
 
+## Guiding Principle: Playable Before Perfect
+
+This roadmap is ambitious for a small team — the single biggest project risk is
+burnout/over-engineering before anyone plays the game (see Risk BR-03). Therefore:
+
+- **The goal of Phase 1 is the earliest playable loop, not a perfect engine.** A
+  rough but fun match → season → transfer loop that a human can play and enjoy beats a
+  statistically immaculate engine with no game around it. Fun retains users; rigor does
+  not. Statistical validation runs continuously but does not gate "is this fun?".
+- **Scope is cut aggressively at every phase boundary.** Any feature not required to
+  make the current phase *playable and enjoyable* is deferred. The 1M-user architecture
+  is the destination, not the Phase 1 deliverable.
+- **Each phase must end with something a real person can play end-to-end.** No phase
+  ships pure infrastructure with no playable surface.
+
+## Recurring Operation: Annual Update Cycle
+
+"Annual data update" is a core product promise (Brasfoot heritage), not a Phase 6
+feature. From **Phase 3 onward** it is a recurring yearly operation, not a one-off:
+
+- Each year: import the new season's data via the Data Pipeline (doc 11), recalculate
+  attributes/CA, version the dataset (`EngineTuning` + data version pinned per
+  season/league), and publish.
+- Active careers and multiplayer leagues pin to the data version at season start —
+  they never change mid-season.
+- The pipeline and `EngineTuning` config (doc 12 §1.1) make this a config + import
+  operation, never a code release. Target: annual update ships without redeploying the
+  engine.
+
 ---
 
 ## Phase 1 — Engine Offline
