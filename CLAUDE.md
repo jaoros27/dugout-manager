@@ -24,6 +24,14 @@ GitHub: https://github.com/jaoros27/dugout-manager
 - Code must stay simple and readable so the user can review it.
 - Engine-first: prove the match engine is fun before building UI on top.
 
+## Working agreement: keep status current (MANDATORY)
+
+**Whenever a milestone or meaningful step is completed, update the "Current status"
+section below BEFORE ending the session** — mark what is done (✅) and set the next step
+(⬜). This is part of the Definition of Done for every step, not an optional extra. A new
+chat relies on this section being accurate to know where to continue. If status here is
+stale, the handoff to the next session is broken.
+
 ## Where the plan lives
 
 - **Near-term execution**: `specs/product/` (docs 18-21) — MVP, bootstrap stack, business
