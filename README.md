@@ -70,6 +70,19 @@ dugout-manager/
 | 16 | Technical Roadmap | [specs/roadmap/16-technical-roadmap.md](specs/roadmap/16-technical-roadmap.md) |
 | 17 | Technical Debt Prevention | [specs/architecture/17-technical-debt-prevention.md](specs/architecture/17-technical-debt-prevention.md) |
 
+### Production Planning (calibrated to real constraints: solo, zero budget, 3-4 month launch)
+
+| # | Document | Location |
+|---|---|---|
+| 18 | MVP Definition | [specs/product/18-mvp-definition.md](specs/product/18-mvp-definition.md) |
+| 19 | Bootstrap Stack (R$0/month) | [specs/product/19-bootstrap-stack.md](specs/product/19-bootstrap-stack.md) |
+| 20 | Business Model (freemium + subscription) | [specs/product/20-business-model.md](specs/product/20-business-model.md) |
+| 21 | Execution Plan (14-week MVP) | [specs/product/21-execution-plan.md](specs/product/21-execution-plan.md) |
+
+> **Start here for execution**: docs 18–21 are the real near-term plan. The 17 architecture
+> docs are the 10-year vision they build toward. The MVP is browser-only, single-player,
+> free, and costs R$0/month to run.
+
 ---
 
 ## Technology Stack
